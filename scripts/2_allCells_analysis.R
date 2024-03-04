@@ -4,18 +4,16 @@
 source("/pl/active/dow_lab/dylan/repos/scrna-seq/analysis-code/customFunctions.R")
 
 ### Analysis note: 
-# This script loads in the previously processed Seurat object (./output/s3/230816_duod_h3c4_NoIntrons_res1.3_dims40_dist0.3_neigh50_S3.rds)
-# then subsets on T cells and generates all figures assocaited with Figure 3
+
 
 ############################################# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #######   begin all cells analysis   ######## <<<<<<<<<<<<<<
 ############################################# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #load in data
-seu.obj <- readRDS("./output/s3/20230505_bloodANDtils_QCfiltered_2500_QCfiltered_2500_res1.2_dims40_dist0.5_neigh60_S3.rds")
+seu.obj <- readRDS("../output/s3/20230505_bloodANDtils_QCfiltered_2500_QCfiltered_2500_res1.2_dims40_dist0.5_neigh60_S3.rds")
 seu.obj$conSense <- ifelse(seu.obj$cellSource == "TILs", seu.obj$celltype.l3,seu.obj$celltype.l3_pbmc)
-outName <- "tils_naive6_w_all_OS_PBMC"
-subName <- "allCells"
+outName <- "allCells"
 
 Idents(seu.obj) <- "orig.ident"
 seu.obj <- RenameIdents(seu.obj, c("run_count_osa_pbmc_1" = "bl_1", "run_count_osa_pbmc_2" = "bl_2", 
@@ -41,12 +39,10 @@ pi <- DimPlot(seu.obj,
               label.box = TRUE,
               shuffle = TRUE
 )
-pi <- cusLabels(plot = pi, shape = 21, size = 10, textSize = 6, alpha = 0.8, labCol = "black") + NoLegend() + theme(axis.title = element_blank(),
-                                                                                                                    panel.border = element_blank())
-ggsave(paste("./output/", outName, "/", subName, "/", "rawUMAP.png", sep = ""), width = 7, height = 7)
-
-#get label cpnsensous
-seu.obj$conSense <- ifelse(seu.obj$cellSource == "TILs", seu.obj$celltype.l3,seu.obj$celltype.l3_pbmc)
+pi <- cusLabels(plot = pi, shape = 21, size = 10, textSize = 6, 
+                alpha = 0.8, labCol = "black") + NoLegend() + theme(axis.title = element_blank(),
+                                                                    panel.border = element_blank())
+ggsave(paste("../output/", outName, "/rawUMAP.png", sep = ""), width = 7, height = 7)
 
 # ### DO NOT RUN -- export the seu.obj$conSense metadata slot into a .csv to save as metadata (cellTypez.csv is provided through GitHub)
 # Idents(seu.obj) <- "conSense"
@@ -82,7 +78,7 @@ seu.obj$conSense <- ifelse(seu.obj$cellSource == "TILs", seu.obj$celltype.l3,seu
 # write.csv(df, "./cellTypez.csv")
 
 #load in the cell type consensous classifications
-seu.obj <- loadMeta(seu.obj = seu.obj, seu.file = NULL, metaFile = "./cellTypez.csv", groupBy = "conSense", metaAdd = "major", 
+seu.obj <- loadMeta(seu.obj = seu.obj, seu.file = NULL, metaFile = "../metaData/cellTypez.csv", groupBy = "conSense", metaAdd = "major", 
                      save = FALSE, outName = "", header = TRUE
                     )
 
@@ -100,7 +96,7 @@ pi <- DimPlot(seu.obj,
               shuffle = TRUE
 )
 pi <- formatUMAP(plot = pi)
-ggsave(paste("./output/", outName, "/", subName, "/", "rawUMAP2.png", sep = ""), width = 7, height = 7)
+ggsave(paste("../output/", outName, "/rawUMAP2.png", sep = ""), width = 7, height = 7)
 
 #clean up the dataset to remove cells that do not have a counterpart in both datasets
 Idents(seu.obj) <- "major"
@@ -139,10 +135,10 @@ pi <- DimPlot(seu.obj,
               shuffle = TRUE
 )
 pi <- formatUMAP(plot = pi)
-ggsave(paste("./output/", outName, "/", subName, "/", "rawUMAP3.png", sep = ""), width = 10, height = 10)
+ggsave(paste("../output/", outName, "/rawUMAP3.png", sep = ""), width = 10, height = 10)
 
 
-### Fig 1b - Create raw UMAP
+### Fig 1c - Create raw UMAP
 pi <- DimPlot(seu.obj, 
               reduction = "umap", 
               group.by = "major",
@@ -153,7 +149,7 @@ pi <- DimPlot(seu.obj,
               shuffle = TRUE
 ) + NoLegend()
 pi <- formatUMAP(plot = pi, smallAxes = T) 
-ggsave(paste("./output/", outName, "/", subName, "/majorID_UMAP_tiny.png", sep = ""), width = 7, height = 7)
+ggsave(paste("../output/", outName, "/majorID_UMAP_tiny.png", sep = ""), width = 7, height = 7)
 
 #clean and reorder levels 
 seu.obj$major <- droplevels(as.factor(seu.obj$major))
@@ -167,38 +163,40 @@ seu.obj$majorID_sub <- seu.obj$major
 seu.obj$major <- droplevels(as.factor(seu.obj$major))
 
 
-### Fig 1c - key feature plots
+### Fig 1d - key feature plots
 features <- c("CD3G","CD8A","CD4",  "S100A12","DLA-DRA",
               "FLT3", "ANPEP", "MS4A1","JCHAIN","TOP2A"
              )
 colorz <- "black"
 fig1b <- prettyFeats(seu.obj = seu.obj, nrow = 2, ncol = 5, features = features, color = colorz, order = F) 
-ggsave(paste("./output/", outName, "/", subName, "featPlots.png", sep = ""), width = 15, height = 6)
+ggsave(paste("../output/", outName, "/featPlots.png", sep = ""), width = 15, height = 6)
 
 
-### Fig 1d - barchart comparing cell type proptions
+### Fig 1e - barchart comparing cell type proptions
 p <- skewPlot(seu.obj, groupBy = "majorID_sub")
-ggsave(paste("./output/", outName, "/", subName, "/", "barchart.png", sep = ""), width = 6, height = 4)
+ggsave(paste("../output/", outName, "/barchart.png", sep = ""), width = 6, height = 4)
 
 #store gene list associated with platelets (as presented in https://doi.org/10.5281/zenodo.7884518)
 pal_feats = c('TIMP1', 'NAA10', 'ENSCAFG00000037735', 'GP6', 'SEC11C', 'FTL', 'NRGN', 'ACOT7', 'VCL', 'RSU1', 'ITGB1', 'H3-3A', 'RABGAP1L', 'SELP', 'SH3GLB1', 'ACTB', 'ENSCAFG00000008221', 'TLN1', 'GSN', 'AMD1', 'TREM2', 'SH3BGRL2', 'MYH9', 'PLEK', 'ENSCAFG00000042554', 'RAP1B', 'ENSCAFG00000004260', 'NAP1L1', 'PPBP', 'RASA3', 'ITGA2B', 'EIF1', 'ACTG1', 'C9H17orf64', 'JMJD6', 'CCL14', 'GNG11', 'IGF2BP3', 'TBXAS1', 'VDAC3', 'MARCHF2', 'TPM4', 'TKT', 'FTH1.1', 'FERMT3', 'RTN3', 'PRKAR2B', 'SVIP', 'ENSCAFG00000030286', 'ADA', 'MYL9', 'TUBB1', 'TUBA1B', 'METTL7A', 'THBS1', 'SERF2', 'PIF1', 'B2M', 'GAS2L1', 'YWHAH', 'HPSE', 'ATG3', 'ENSCAFG00000015217', 'ITGA6','RGS18', 'SUB1', 'LGALS1', 'CFL1', 'BIN2', 'CAT', 'RGS10', 'MGST3', 'TMBIM6', 'PFN1', 'CD63', 'RALBP1', 'GNAS', 'SEPTIN7', 'TPT1', 'UBB', 'ATF4', 'BBLN', 'MTDH', 'ENSCAFG00000017655','FYB1', 'ENO1', 'GABARAP', 'SSR4', 'MSN', 'ENSCAFG00000011134', 'ENSCAFG00000046637', 'COX8A', 'DLA-64', 'CD47', 'VASP', 'DYNLRB1', 'DLA88', 'SMDT1', 'ATP5PF','ELOB', 'ENSCAFG00000029155', 'ARPC3', 'VPS28', 'LRRFIP1', 'SRP14', 'ABRACL', 'ENSCAFG00000043577', 'ENSCAFG00000042598')
 
 
 ### Complete pseudobulk DGE by each major cell type
-createPB(seu.obj = seu.obj, groupBy = "majorID_sub", comp = "cellSource", biologicalRep = "name", lowFilter = T, dwnSam = F, min.cell = 5,
-         clusters = NULL, outDir = paste0("./output/", outName, "/", subName, "/pseudoBulk/"), grepTerm = "tils", grepLabel = c("TILs", "Blood")
-)
+createPB(seu.obj = seu.obj, groupBy = "majorID_sub", comp = "cellSource", biologicalRep = "orig.ident", 
+         lowFilter = T, dwnSam = F, min.cell = 5,
+         outDir = paste0("../output/", outName, "/pseudoBulk/"), 
+         grepTerm = "tumor", grepLabel = c("TILs", "Blood")
+        )
 
-pseudoDEG(metaPWD = paste0("./output/", outName, "/", subName, "/pseudoBulk/majorID_sub_deg_metaData.csv"),
-          padj_cutoff = 0.05, lfcCut = 0.58, outDir = paste0("./output/", outName, "/", subName, "/pseudoBulk/"), 
+pseudoDEG(metaPWD = paste0("../output/", outName, "/pseudoBulk/majorID_sub_deg_metaData.csv"),
+          padj_cutoff = 0.05, lfcCut = 0.58, outDir = paste0("../output/", outName, "/pseudoBulk/"), 
           outName = outName, 
           idents.1_NAME = "TILs", idents.2_NAME = "Blood",
-          inDir = paste0("./output/", outName, "/", subName, "/pseudoBulk/"), title = "All cells", 
+          inDir = paste0("../output/", outName, "/pseudoBulk/"), title = "All cells", 
           filterTerm = "ZZZZ", addLabs = NULL, mkDir = T
 )
 
 #load in the DGE results for each major cell type (exluding cycling cells) to plot and extract tissue gene signature 
-pwds <- lapply(levels(seu.obj$majorID_sub)[c(1,2,4:7)], function(x){paste0("./output/", outName, "/", subName, "/pseudoBulk/", x, "/", outName, "_cluster_", x, "_all_genes.csv")})
+pwds <- lapply(levels(seu.obj$majorID_sub)[c(1,2,4:7)], function(x){paste0("../output/", outName, "/pseudoBulk/", x, "/", outName, "_cluster_", x, "_all_genes.csv")})
 df.list <- lapply(pwds, read.csv, header = T)
 
 feats.list <- lapply(df.list, function(x){feats <- x %>% filter(log2FoldChange > 0) %>% select(gene)})
@@ -210,7 +208,7 @@ p <- plotGSEA(geneList = tumor.sig, category = "C5", species = "dog", termsTOplo
                     ) + theme(axis.title=element_text(size = 16))
 
 p <- p + scale_x_continuous(limits = c(-12,ceiling(max(p$data$x_axis)*1.05)), breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),name = "log10(p.adj)") + ggtitle("Gene ontology") + theme(plot.title = element_text(size = 20, hjust = 0.5))
-ggsave(paste0("./output/", outName, "/", subName, "/", "gseaPlot_1.png"), width =7, height = 7)
+ggsave(paste0("../output/", outName, "/gseaPlot_1.png"), width =7, height = 7)
 
 
 #pathway REACTOME
@@ -219,7 +217,7 @@ p <- plotGSEA(geneList = tumor.sig, category = "C2", species = "dog", termsTOplo
                     ) + theme(axis.title=element_text(size = 16))
 
 p <- p + scale_x_continuous(limits = c(-20,ceiling(max(p$data$x_axis)*1.05)), breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),name = "log10(p.adj)") + ggtitle("Reactome") + theme(plot.title = element_text(size = 20, hjust = 0.5))
-ggsave(paste0("./output/", outName, "/", subName, "/", "gseaPlot_2.png"), width =7, height = 7)
+ggsave(paste0("../output/", outName, "/gseaPlot_2.png"), width =7, height = 7)
 
 
 #also extract the conserved downregulated features
@@ -241,23 +239,24 @@ upSet.df[ ,levels(seu.obj$majorID_sub)[c(1,2,4:7)][4]] <- as.integer(ifelse(upSe
 upSet.df[ ,levels(seu.obj$majorID_sub)[c(1,2,4:7)][5]] <- as.integer(ifelse(upSet.df$gene %in% feats.list[5][[1]]$gene, 1, 0))
 upSet.df[ ,levels(seu.obj$majorID_sub)[c(1,2,4:7)][6]] <- as.integer(ifelse(upSet.df$gene %in% feats.list[6][[1]]$gene, 1, 0))
 
-png(file = paste0("./output/", outName, "/", subName, "/",subName, "_upSet.png"), width=4000, height=2000, res=400)
+png(file = paste0("../output/", outName, "/upSet.png"), width=4000, height=2000, res=400)
 par(mfcol=c(1,1))     
 p <- upset(upSet.df, sets = colnames(upSet.df)[2:7], , cutoff = 10,  nintersects = 60)
 p
 dev.off()
 
 ### Complete pseudobulk DGE by each major cell type w/filter
-createPB(seu.obj = seu.obj, groupBy = "majorID_sub", comp = "cellSource", biologicalRep = "name", min.cell = 5,
-                     clusters = NULL, outDir = paste0("./output/", outName, "/", subName, "/pseudoBulk/"), grepTerm = "tils", grepLabel = c("TILs", "Blood"), featsTOexclude = c(pal_feats,tumor.sig), lowFilter = T, dwnSam =F
+createPB(seu.obj = seu.obj, groupBy = "majorID_sub", comp = "cellSource", biologicalRep = "orig.ident", min.cell = 5,
+                     clusters = NULL, outDir = paste0("../output/", outName, "/pseudoBulk/"), grepTerm = "tumor", grepLabel = c("TILs", "Blood"), featsTOexclude = c(pal_feats,tumor.sig), lowFilter = T, dwnSam =F
                     )
 
-p_volc <- pseudoDEG(metaPWD = paste0("./output/", outName, "/", subName, "/pseudoBulk/majorID_sub_deg_metaData.csv"),
-          padj_cutoff = 0.01, lfcCut = 0.58, outDir = paste0("./output/", outName, "/", subName, "/pseudoBulk/"), outName = paste0(subName, "_FILTERED"), idents.1_NAME = "TILs", idents.2_NAME = "Blood",
-          inDir = paste0("./output/", outName, "/", subName, "/pseudoBulk/"), title = "TILS vs Blood", fromFile = T, meta = NULL, pbj = NULL, returnVolc = T, paired = F, pairBy = "", 
+p_volc <- pseudoDEG(metaPWD = paste0("../output/", outName, "/pseudoBulk/majorID_sub_deg_metaData.csv"),
+          padj_cutoff = 0.01, lfcCut = 0.58, outDir = paste0("../output/", outName, "/pseudoBulk/"), outName = paste0(outName, "_FILTERED"), idents.1_NAME = "TILs", idents.2_NAME = "Blood",
+          inDir = paste0("../output/", outName, "/pseudoBulk/"), title = "TILS vs Blood", fromFile = T, meta = NULL, pbj = NULL, returnVolc = T, paired = F, pairBy = "", 
           minimalOuts = F, saveSigRes = T, filterTerm = "^ENSCAF", addLabs = NULL, mkDir = T
                      )
 
+saveRDS(seu.obj, "../output/s3/bloodANDtils_filtered_allCells_S3.rds")
 
 ########################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #######   end all cells analysis   ######## <<<<<<<<<<<<<<
