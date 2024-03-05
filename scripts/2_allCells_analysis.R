@@ -79,8 +79,7 @@ ggsave(paste("../output/", outName, "/rawUMAP.png", sep = ""), width = 7, height
 
 #load in the cell type consensous classifications
 seu.obj <- loadMeta(seu.obj = seu.obj, seu.file = NULL, metaFile = "../metaData/cellTypez.csv", groupBy = "conSense", metaAdd = "major", 
-                     save = FALSE, outName = "", header = TRUE
-                    )
+                     save = FALSE, outName = "", header = TRUE)
 
 
 ### Fig extra - create raw UMAP
@@ -93,31 +92,27 @@ pi <- DimPlot(seu.obj,
               label = F,
               ncol = 4,
               label.box = F,
-              shuffle = TRUE
-)
+              shuffle = TRUE)
 pi <- formatUMAP(plot = pi)
 ggsave(paste("../output/", outName, "/rawUMAP2.png", sep = ""), width = 7, height = 7)
 
 #clean up the dataset to remove cells that do not have a counterpart in both datasets
 Idents(seu.obj) <- "major"
 seu.obj <- subset(seu.obj, invert = T,
-                          ident = c("Eosinophil", "DN T cell","gd T cell", "CD4+, IFN signature","Basophil", "CD34+ Unclassified", "T_IFN")
-                         )
+                          ident = c("Eosinophil", "DN T cell","gd T cell", "CD4+, IFN signature","Basophil", "CD34+ Unclassified", "T_IFN"))
 table(seu.obj$major)
 dim(seu.obj)
 
 #rename to match cell type across datasets
 seu.obj$major <- droplevels(seu.obj$major)
-seu.obj <- RenameIdents(seu.obj, c("Cycling T cell" = "T_cycling", "T_cycling" = "T_cycling")
-                       )
+seu.obj <- RenameIdents(seu.obj, c("Cycling T cell" = "T_cycling", "T_cycling" = "T_cycling"))
 seu.obj$major <- Idents(seu.obj)
 
 #exclude any remaining cells that do not have an ID associated with the barcode
 seu.obj$major <- as.factor(ifelse(is.na(seu.obj$major),"NA",as.character(seu.obj$major)))
 Idents(seu.obj) <- "major"
 seu.obj <- subset(seu.obj,invert = TRUE,
-                  ident = "NA"
-                 )
+                  ident = "NA")
 table(seu.obj$major)
 dim(seu.obj)
 
@@ -165,10 +160,8 @@ seu.obj$major <- droplevels(as.factor(seu.obj$major))
 
 ### Fig 1d - key feature plots
 features <- c("CD3G","CD8A","CD4",  "S100A12","DLA-DRA",
-              "FLT3", "ANPEP", "MS4A1","JCHAIN","TOP2A"
-             )
-colorz <- "black"
-fig1b <- prettyFeats(seu.obj = seu.obj, nrow = 2, ncol = 5, features = features, color = colorz, order = F) 
+              "FLT3", "ANPEP", "MS4A1","JCHAIN","TOP2A")
+p <- prettyFeats(seu.obj = seu.obj, nrow = 2, ncol = 5, features = features, color = "black", order = F) 
 ggsave(paste("../output/", outName, "/featPlots.png", sep = ""), width = 15, height = 6)
 
 
@@ -226,7 +219,7 @@ tumor.sig2 <- Reduce(intersect, list(feats.list2[1][[1]]$gene, feats.list2[2][[1
 
 #stash the signature for later use
 tumor.sig <- c(tumor.sig, tumor.sig2)
-
+write.csv(tumor.sig, "./metaData/tumorSig.csv", row.names = F)
 
 ### Fig supp 1a - upset plot demonstrating the conserved gene signature
 library(UpSetR)
