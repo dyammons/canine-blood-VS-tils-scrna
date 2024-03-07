@@ -5,9 +5,9 @@ source("/pl/active/dow_lab/dylan/repos/scrna-seq/analysis-code/customFunctions.R
 
 ### Analysis note: 
 
-################################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#######   begin CD8 T cell preprocessing   ######## <<<<<<<<<<<<<<
-################################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+############################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#######   begin B cell preprocessing   ######## <<<<<<<<<<<<<<
+############################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #set output params
 outName <- "bcell"
@@ -38,9 +38,9 @@ seu.obj <- dataVisUMAP(seu.obj = seu.obj, outDir = "./output/s3/", outName = "20
                                      "CD4", "MS4A1", "PPBP","HBM")
                       )
 
-############################################# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#######   begin CD8 T cell analysis   ######## <<<<<<<<<<<<<<
-############################################# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+########################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#######   begin B cell analysis   ######## <<<<<<<<<<<<<<
+########################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #load in processed data
 seu.obj <- readRDS("../output/s3/20230507_bcell_bloodANDtils_res0.4_dims30_dist0.5_neigh60_S3.rds")
@@ -61,8 +61,6 @@ colz.df <- read.csv("./metaData/majorGroups.csv")
 colz.df <- colz.df[colz.df$majorID2 == "b" | colz.df$majorID2 == "plasma", ]
 
 table(seu.obj$clusterID_sub,seu.obj$conSense)
-
-tmpColz <- gg_color_hue(5)
 
 Idents(seu.obj) <- "clusterID_sub"
 seu.obj <- RenameIdents(seu.obj, c("0" = "#F8766D", "1" = "#A3A500", 
@@ -95,7 +93,7 @@ vilnPlots(seu.obj = seu.obj, groupBy = "clusID_new", numOfFeats = 24, outName = 
 pi <- DimPlot(seu.obj, 
               reduction = "umap", 
               group.by = "clusID_new",
-              cols = levels(seu.obj$dcColz),
+              cols = colz.df$colour[c(1,4,5,2)],
               pt.size = 0.5,
               label = TRUE,
               label.box = TRUE,
@@ -108,7 +106,7 @@ ggsave(paste("../output/", outName, "/", "rawUMAP.png", sep = ""), width = 7, he
 
 
 ### Fig 4b - skew plot for abundance analysis
-p <- skewPlot(seu.obj, groupBy = "clusID_new", outDir = paste0("../output/", outName), outName = outName)
+p <- skewPlot(seu.obj, groupBy = "majorID_sub", outDir = paste0("../output/", outName), outName = outName)
 ggsave(paste0("../output/", outName, "/", "skewPlot.png"), width = 6, height = 4)
 
 
@@ -143,7 +141,7 @@ p <- plotGSEA(pwdTOgeneList = paste0("../output/", outName, "/pseudoBulk/allCell
               geneList = NULL, category = "C5", species = "dog", termsTOplot = 10, upOnly = T, trunkTerm = T,
               pvalueCutoff = 0.05, subcategory = NULL, 
               saveRes = paste0("../output/", outName, "/c5_", outName, "_res.csv")) + theme(axis.title=element_text(size = 16))
-p <- p + scale_x_continuous(limits = c(-22,ceiling(max(p$data$x_axis)*1.05)), 
+p <- p + scale_x_continuous(limits = c(-80,ceiling(max(p$data$x_axis)*1.05)), 
                             breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),
                             name = "log10(p.adj)") + ggtitle("Gene ontology") + theme(plot.title = element_text(size = 20, hjust = 0.5))
 ggsave(paste0("../output/", outName, "/", "gseaPlot_1.png"), width = 7, height = 7)
@@ -154,7 +152,7 @@ p <- plotGSEA(pwdTOgeneList = paste0("../output/", outName, "/pseudoBulk/allCell
          geneList = NULL, category = "C2", species = "dog", termsTOplot = 10, upOnly = T, trunkTerm = T,
                      pvalueCutoff = 0.05, subcategory = "CP:REACTOME", saveRes = paste0("../output/", outName, "/c2_", outName, "_res.csv")
                     ) + theme(axis.title=element_text(size = 16))
-p <- p + scale_x_continuous(limits = c(-8,ceiling(max(p$data$x_axis)*1.05)), breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),name = "log10(p.adj)") + ggtitle("Reactome") + theme(plot.title = element_text(size = 20, hjust = 0.5))
+p <- p + scale_x_continuous(limits = c(-30,ceiling(max(p$data$x_axis)*1.05)), breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),name = "log10(p.adj)") + ggtitle("Reactome") + theme(plot.title = element_text(size = 20, hjust = 0.5))
 ggsave(paste0("../output/", outName, "/", "gseaPlot_2.png"), width = 7, height = 7)
 
 
@@ -177,8 +175,8 @@ p <- FeaturePlot(seu.obj.sub,features = features, pt.size = 0.1, split.by = "cel
 ggsave(paste("../output/", outName, "/", "splitFeats.png", sep = ""), width = 12, height = 4)
 
 
-########################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#######   end CD8 T cell analysis   ######## <<<<<<<<<<<<<<
-########################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+######################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#######   end B cell analysis   ######## <<<<<<<<<<<<<<
+######################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
