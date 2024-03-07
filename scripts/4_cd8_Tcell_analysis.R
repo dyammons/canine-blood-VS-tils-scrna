@@ -6,7 +6,7 @@ source("/pl/active/dow_lab/dylan/repos/scrna-seq/analysis-code/customFunctions.R
 ### Analysis note: 
 
 ################################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#######   begin CD* T cell preprocessing   ######## <<<<<<<<<<<<<<
+#######   begin CD8 T cell preprocessing   ######## <<<<<<<<<<<<<<
 ################################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #set output params
@@ -64,15 +64,15 @@ outName <- "cd8"
 
 #check consenseous
 seu.obj$ct <- ifelse(seu.obj$cellSource == "TILs", paste0("TIL;", seu.obj$celltype.l3), paste0("Blood;",seu.obj$celltype.l3_pbmc))
-table(seu.obj$ct, seu.obj$clusID_new) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% filter(source == "Blood") %>% group_by(Var.2) %>% mutate(pct = value/sum(value))%>% filter(value == max(value))
-table(seu.obj$ct, seu.obj$clusID_new) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% filter(source == "TIL") %>% group_by(Var.2) %>% mutate(pct = value/sum(value)) %>% filter(value == max(value))
+table(seu.obj$ct, seu.obj$clusterID_sub) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% filter(source == "Blood") %>% group_by(Var.2) %>% mutate(pct = value/sum(value)) %>% filter(value == max(value))
+table(seu.obj$ct, seu.obj$clusterID_sub) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% filter(source == "TIL") %>% group_by(Var.2) %>% mutate(pct = value/sum(value)) %>% filter(value == max(value))
 
 Idents(seu.obj) <- "cellSource"
 seu.obj.ds <- subset(seu.obj, downsample = min(table(seu.obj$cellSource)))
-table(seu.obj.ds$ct, seu.obj.ds$clusID_new) %>% sweep(., 2, colSums(.), `/`) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% group_by(source, Var.2) %>% filter(value == max(value))
+table(seu.obj.ds$ct, seu.obj.ds$clusterID_sub) %>% sweep(., 2, colSums(.), `/`) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% group_by(source, Var.2) %>% filter(value == max(value))
 
 #set metadata
-colz.df <- read.csv("./majorGroups.csv")
+colz.df <- read.csv("./metaData/majorGroups.csv")
 colz.df <- colz.df[colz.df$majorID2 == "cyto", ]
 colz.df$colour
 
@@ -160,30 +160,30 @@ ggsave(paste0("../output/", outName, "/", "volcPlot.png"), width = 7, height = 7
 
 
 ### Fig 2d - GO GSEA of DEGs
-p <- plotGSEA(pwdTOgeneList = "../output/cd4/pseudoBulk/allCells/cd4_cluster_allCells_all_genes.csv",
-              geneList = NULL, category = "C5", species = "dog", termsTOplot = 10, upOnly = T, 
+p <- plotGSEA(pwdTOgeneList = paste0("../output/", outName, "/pseudoBulk/allCells/", outName, "_cluster_allCells_all_genes.csv"),
+              geneList = NULL, category = "C5", species = "dog", termsTOplot = 10, upOnly = T, trunkTerm = T,
               pvalueCutoff = 0.05, subcategory = NULL, 
-              saveRes = paste0("../output/", outName, "/c5_cd4_res.csv")) + theme(axis.title=element_text(size = 16))
-p <- p + scale_x_continuous(limits = c(-12,ceiling(max(p$data$x_axis)*1.05)), 
+              saveRes = paste0("../output/", outName, "/c5_", outName, "_res.csv")) + theme(axis.title=element_text(size = 16))
+p <- p + scale_x_continuous(limits = c(-22,ceiling(max(p$data$x_axis)*1.05)), 
                             breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),
                             name = "log10(p.adj)") + ggtitle("Gene ontology") + theme(plot.title = element_text(size = 20, hjust = 0.5))
-ggsave(paste0("../output/", outName, "/", "gseaPlot_1.png"), width =7, height = 7)
+ggsave(paste0("../output/", outName, "/", "gseaPlot_1.png"), width = 7, height = 7)
 
 
 ### Fig 2e - Reactome GSEA of DEGs
-p <- plotGSEA(pwdTOgeneList = "../output/cd4/pseudoBulk/allCells/cd4_cluster_allCells_all_genes.csv",
-         geneList = NULL, category = "C2", species = "dog", termsTOplot = 10, upOnly = T,
-                     pvalueCutoff = 0.05, subcategory = "CP:REACTOME", saveRes = paste0("../output/", outName, "/c2_cd4_res.csv")
+p <- plotGSEA(pwdTOgeneList = paste0("../output/", outName, "/pseudoBulk/allCells/", outName, "_cluster_allCells_all_genes.csv"),
+         geneList = NULL, category = "C2", species = "dog", termsTOplot = 10, upOnly = T, trunkTerm = T,
+                     pvalueCutoff = 0.05, subcategory = "CP:REACTOME", saveRes = paste0("../output/", outName, "/c2_", outName, "_res.csv")
                     ) + theme(axis.title=element_text(size = 16))
-p <- p + scale_x_continuous(limits = c(-12,ceiling(max(p$data$x_axis)*1.05)), breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),name = "log10(p.adj)") + ggtitle("Reactome") + theme(plot.title = element_text(size = 20, hjust = 0.5))
-ggsave(paste0("../output/", outName, "/", "gseaPlot_2.png"), width =7, height = 7)
+p <- p + scale_x_continuous(limits = c(-8,ceiling(max(p$data$x_axis)*1.05)), breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),name = "log10(p.adj)") + ggtitle("Reactome") + theme(plot.title = element_text(size = 20, hjust = 0.5))
+ggsave(paste0("../output/", outName, "/", "gseaPlot_2.png"), width = 7, height = 7)
 
 
 ### Fig 2f - Split UMAP of selected DEGs
 Idents(seu.obj) <- "cellSource"
 seu.obj.sub <- subset(x = seu.obj, downsample = min(table(seu.obj$cellSource)))
 
-features <- c("TXNIP", "LEF1", "PTGDR", "CD53", "CX3CR1", "HAVCR1", "TNFSF9", "LAG3","TNFRSF18")
+features <- c("TRIM22", "LEF1", "PTGDR", "CD53", "CX3CR1", "HAVCR1", "TNFSF9", "LAG3","TNFRSF18")
 
 p <- FeaturePlot(seu.obj.sub,features = features, pt.size = 0.1, split.by = "cellSource", order = T, cols = c("lightgrey","darkblue"), by.col = F) + labs(x = "UMAP1", y = "UMAP2") & theme(axis.text = element_blank(),
                                                                                                                                                 axis.title.y.right = element_text(size = 11),
@@ -199,7 +199,7 @@ ggsave(paste("../output/", outName, "/", "splitFeats.png", sep = ""), width = 12
 
 
 ########################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#######   end CD4 T cell analysis   ######## <<<<<<<<<<<<<<
+#######   end CD8 T cell analysis   ######## <<<<<<<<<<<<<<
 ########################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
