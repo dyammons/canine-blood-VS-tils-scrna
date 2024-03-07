@@ -128,7 +128,7 @@ p <- plotGSEA(pwdTOgeneList = paste0("../output/", outName, "/pseudoBulk/allCell
               geneList = NULL, category = "C5", species = "dog", termsTOplot = 10, upOnly = T, trunkTerm = T,
               pvalueCutoff = 0.05, subcategory = NULL, 
               saveRes = paste0("../output/", outName, "/c5_", outName, "_res.csv")) + theme(axis.title=element_text(size = 16))
-p <- p + scale_x_continuous(limits = c(-80,ceiling(max(p$data$x_axis)*1.05)), 
+p <- p + scale_x_continuous(limits = c(-25,ceiling(max(p$data$x_axis)*1.05)), 
                             breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),
                             name = "log10(p.adj)") + ggtitle("Gene ontology") + theme(plot.title = element_text(size = 20, hjust = 0.5))
 ggsave(paste0("../output/", outName, "/", "gseaPlot_1.png"), width = 7, height = 7)
@@ -139,7 +139,7 @@ p <- plotGSEA(pwdTOgeneList = paste0("../output/", outName, "/pseudoBulk/allCell
          geneList = NULL, category = "C2", species = "dog", termsTOplot = 10, upOnly = T, trunkTerm = T,
                      pvalueCutoff = 0.05, subcategory = "CP:REACTOME", saveRes = paste0("../output/", outName, "/c2_", outName, "_res.csv")
                     ) + theme(axis.title=element_text(size = 16))
-p <- p + scale_x_continuous(limits = c(-30,ceiling(max(p$data$x_axis)*1.05)), breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),name = "log10(p.adj)") + ggtitle("Reactome") + theme(plot.title = element_text(size = 20, hjust = 0.5))
+p <- p + scale_x_continuous(limits = c(-20,ceiling(max(p$data$x_axis)*1.05)), breaks = c(0,ceiling(max(p$data$x_axis)*1.05)/2,ceiling(max(p$data$x_axis)*1.05)),name = "log10(p.adj)") + ggtitle("Reactome") + theme(plot.title = element_text(size = 20, hjust = 0.5))
 ggsave(paste0("../output/", outName, "/", "gseaPlot_2.png"), width = 7, height = 7)
 
 
