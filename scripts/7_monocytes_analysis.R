@@ -166,6 +166,90 @@ p <- FeaturePlot(seu.obj.sub,features = features, pt.size = 0.1, split.by = "cel
                                                                                                                           ) 
 ggsave(paste("../output/", outName, "/", "splitFeats.png", sep = ""), width = 12, height = 4)
 
+### Generate supplemental figure for mono vs macrophage
+#load in annotated tumor data
+seu.obj.tumor <- readRDS(file = "./output/s3/canine_naive_n6_annotated.rds")
+
+### Select cells to integrate (all pbmcs from OS dogs and only immune cells from tumor)
+Idents(seu.obj.tumor) <- "celltype.l3"
+table(seu.obj.tumor@active.ident)
+seu.obj.tams <- subset(seu.obj.tumor,
+                          idents = c("ANGIO_TAM","LA-TAM_C1QC_hi","LA-TAM_SPP2_hi","TAM_ACT","TAM_INT", "CD4+_TIM", "CD4-_TIM", "IFN-TAM")
+                         )
+
+seu.obj.bl <- subset(seu.obj, subset = cellSource == "Blood")
+
+seu.sub.list <- c(SplitObject(seu.obj.bl, split.by = "name"),SplitObject(seu.obj.tams, split.by = "name"))
+
+
+seu.obj <- indReClus(seu.obj = NULL, outDir = "./output/s2/", subName = "20231014_macMono_bloodANDtils", preSub = T, seu.list = seu.sub.list,
+                      vars.to.regress = "percent.mt",nfeatures = 2000
+                       )
+
+
+clusTree(seu.obj = seu.obj, dout = "./output/clustree/", outName = "20231014_macMono_bloodANDtils", test_dims = c(40,35,30), algorithm = 3, prefix = "integrated_snn_res.")
+
+seu.obj <- dataVisUMAP(seu.obj = seu.obj, outDir = "./output/s3/", outName = "20231014_macMono_bloodANDtils", final.dims = 35, final.res = 0.3, stashID = "clusterID_sub", 
+                        algorithm = 3, prefix = "integrated_snn_res.", min.dist = 0.5, n.neighbors = 60, assay = "integrated", saveRDS = T,
+                        features = c("PTPRC", "CD3E", "CD8A", "GZMA", 
+                                     "IL7R", "ANPEP", "FLT3", "DLA-DRA", 
+                                     "CD4", "MS4A1", "PPBP","HBM")
+                      )
+
+seu.obj$macMono <- ifelse(!is.na(seu.obj$cellSource), "Monocyte", ifelse(seu.obj$celltype.l3 == "CD4+_TIM" | seu.obj$celltype.l3 == "CD4-_TIM", "TIM", "TAM"))
+
+#complete hc
+seu.obj$type <- paste0(seu.obj$macMono,"_",seu.obj$name)
+
+metadata <- seu.obj@meta.data
+expression <- as.data.frame(t(seu.obj@assays$RNA@data)) #use log noralized count
+expression$anno_merge <- seu.obj@meta.data[rownames(expression),]$type
+
+clusAvg_expression <- expression %>% group_by(anno_merge) %>% summarise(across(where(is.numeric), mean)) %>% as.data.frame()
+rownames(clusAvg_expression) <- clusAvg_expression$anno_merge
+clusAvg_expression$anno_merge <- NULL                                                                       
+
+M <- (1- cor(t(clusAvg_expression),method="pearson"))/2
+hc <- hclust(as.dist(M),method="complete")
+
+ggtree(as.phylo(hc)) + geom_tiplab(offset = 0.003) + xlim(NA,0.1) #+ geom_tippoint(shape = 21,size = 8,alpha = 1, colour="black", fill = "white") + geom_tiplab(aes(label = seq(1:43)-1,colour=c("black"),offset = -0.001))
+ggsave(paste("./output/", outName, "/", subName, "/",subName, "_hc.png", sep = ""), width = 8, height = 8)
+
+# Transpose count matrix and calculate distances using dist()
+sampleDists <- clusAvg_expression %>% dist()
+
+# Convert distance dataframe to matrix
+sampleDistMatrix <- as.matrix(sampleDists)
+
+# Choose continuous palette from RColorBrewer
+colors <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255)
+
+# Plot sample distance heatmap with ComplexHeatmap
+png(file = paste0("./output/", outName, "/", subName, "/",subName, "_samDist.png"), width=4000, height=4000, res=400)
+par(mfcol=c(1,1))         
+
+ht <- Heatmap(sampleDistMatrix, #name = "mat", #col = col_fun,
+              name = "Sample distance",
+              cluster_rows = hc,
+              row_title = "",
+              row_title_gp = gpar(fontsize = 24),
+              col=colors,#viridis(option = "magma",100),
+              cluster_columns = hc,
+              column_title = "",
+              column_title_gp = gpar(fontsize = 24),
+              column_title_side = "bottom",
+              column_names_rot = 45,
+              heatmap_legend_param = list(legend_direction = "horizontal", title_position = "topleft",  title_gp = gpar(fontsize = 16), 
+                                          labels_gp = gpar(fontsize = 8), legend_width = unit(6, "cm")),
+              
+#               cell_fun = function(j, i, x, y, width, height, fill) {
+#                   grid.text(sprintf("%.0f", small_mat[i, j]), x, y, gp = gpar(fontsize = 10))
+#               }
+             )
+
+draw(ht, padding = unit(c(2, 12, 2, 5), "mm"),heatmap_legend_side = "top")
+
+dev.off()
 
 ########################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #######   end monocyte analysis   ######## <<<<<<<<<<<<<<
