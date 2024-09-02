@@ -13,6 +13,7 @@ source("/pl/active/dow_lab/dylan/repos/scrna-seq/analysis-code/customFunctions.R
 outName <- "mono"
 
 #subset on the monocytes & complete subset analysis
+Idents(seu.obj) <- "conSense"
 seu.obj.sub <- subset(seu.obj, 
                           idents = c("IFN-TAM","M-MDSC" ,"Monocyte, CD4+","Monocyte, CD4-","Monocyte, IFN signature",
                                      "TIM")
@@ -60,8 +61,8 @@ colz.df <- colz.df[colz.df$majorID2 == "mono", ]
 table(seu.obj$clusterID_sub,seu.obj$conSense)
 
 Idents(seu.obj) <- "clusterID_sub"
-seu.obj <- RenameIdents(seu.obj, c("0" = "CD4neg_monocyte (c0)", "1" = "CD4Pos_monocyte (c1)", 
-                                   "2" = "CD4neg_monocyte (c0)", "3" = "CD4neg_monocyte (c0)",
+seu.obj <- RenameIdents(seu.obj, c("0" = "CD4-_monocyte (c0)", "1" = "CD4+_monocyte (c1)", 
+                                   "2" = "CD4-_monocyte (c0)", "3" = "CD4-_monocyte (c0)",
                                    "4" = "IFN_monocyte (c2)", "5" = "M-MDSC (c3)")
                        )
 seu.obj$majorID_sub <- Idents(seu.obj)
@@ -82,8 +83,8 @@ seu.obj$sub_colz <- Idents(seu.obj)
 
 
 ### Supp data - Generate violin plots for each cluster
-vilnPlots(seu.obj = seu.obj, groupBy = "clusID_new", numOfFeats = 24, outName = outName,
-                     outDir = paste0("../output/viln/", outName, "/"), outputGeneList = T, filterOutFeats = c("^MT-", "^RPL", "^ENSCAF", "^RPS")
+vilnPlots(seu.obj = seu.obj, groupBy = "majorID_sub", numOfFeats = 24, outName = outName, returnViln = F,
+                     outDir = paste0("../output/viln/", outName, "/"), outputGeneList = T, filterOutFeats = c("^MT-", "^RPL", "^RPS")
                     )
 
 ### Fig 6a - UMAP by clusterID_sub
@@ -103,7 +104,8 @@ ggsave(paste("../output/", outName, "/", "rawUMAP.png", sep = ""), width = 7, he
 
 
 ### Fig 6b - skew plot for abundance analysis
-p <- skewPlot(seu.obj, groupBy = "majorID_sub", outDir = paste0("../output/", outName), outName = outName)
+p <- skewPlot(seu.obj, groupBy = "majorID_sub", yAxisLabel = "Percent of monocytes",
+              dout = paste0("../output/", outName), outName = outName)
 ggsave(paste0("../output/", outName, "/", "skewPlot.png"), width = 6, height = 4)
 
 
@@ -165,6 +167,116 @@ p <- FeaturePlot(seu.obj.sub,features = features, pt.size = 0.1, split.by = "cel
                                                                                                                            plot.margin = unit(c(0, 0, 0, 0), "cm")
                                                                                                                           ) 
 ggsave(paste("../output/", outName, "/", "splitFeats.png", sep = ""), width = 12, height = 4)
+
+
+
+
+res.df <- read.csv(paste0("../output/", outName, "/pseudoBulk/allCells/", outName, "_cluster_allCells_all_genes.csv"))
+res.df <- res.df[!grepl("^ENS", res.df$gene), ]
+geneList_UP <- res.df %>% filter(padj < 0.1) %>% filter(log2FoldChange > 1) %>% pull(gene)
+geneList_DWN <- res.df %>% filter(padj < 0.1) %>% filter(log2FoldChange < -1) %>% pull(gene)
+
+seu.obj$cellSource <- as.factor(seu.obj$cellSource)
+p <- splitDot(
+    seu.obj = seu.obj, groupBy = "majorID_sub", splitBy = "cellSource", buffer = 150,
+    namedColz = setNames(c("#F8766D", "#00BFC4"),  c("Blood", "TILs")), 
+    geneList_UP = geneList_UP[1:20], geneList_DWN = geneList_DWN[1:20], geneColz = c("red", "blue")
+)
+ggsave(plot = p, paste0("../output/", outName, "/", outName, "_splitDot.png"), width = 11, height = 7)
+
+
+
+#load in the tumor and pal signatures to exlude from DE analysis
+pal_feats = c('TIMP1', 'NAA10', 'ENSCAFG00000037735', 'GP6', 'SEC11C', 'FTL', 'NRGN', 'ACOT7', 'VCL', 'RSU1', 'ITGB1', 'H3-3A', 'RABGAP1L', 'SELP', 'SH3GLB1', 'ACTB', 'ENSCAFG00000008221', 'TLN1', 'GSN', 'AMD1', 'TREM2', 'SH3BGRL2', 'MYH9', 'PLEK', 'ENSCAFG00000042554', 'RAP1B', 'ENSCAFG00000004260', 'NAP1L1', 'PPBP', 'RASA3', 'ITGA2B', 'EIF1', 'ACTG1', 'C9H17orf64', 'JMJD6', 'CCL14', 'GNG11', 'IGF2BP3', 'TBXAS1', 'VDAC3', 'MARCHF2', 'TPM4', 'TKT', 'FTH1.1', 'FERMT3', 'RTN3', 'PRKAR2B', 'SVIP', 'ENSCAFG00000030286', 'ADA', 'MYL9', 'TUBB1', 'TUBA1B', 'METTL7A', 'THBS1', 'SERF2', 'PIF1', 'B2M', 'GAS2L1', 'YWHAH', 'HPSE', 'ATG3', 'ENSCAFG00000015217', 'ITGA6','RGS18', 'SUB1', 'LGALS1', 'CFL1', 'BIN2', 'CAT', 'RGS10', 'MGST3', 'TMBIM6', 'PFN1', 'CD63', 'RALBP1', 'GNAS', 'SEPTIN7', 'TPT1', 'UBB', 'ATF4', 'BBLN', 'MTDH', 'ENSCAFG00000017655','FYB1', 'ENO1', 'GABARAP', 'SSR4', 'MSN', 'ENSCAFG00000011134', 'ENSCAFG00000046637', 'COX8A', 'DLA-64', 'CD47', 'VASP', 'DYNLRB1', 'DLA88', 'SMDT1', 'ATP5PF','ELOB', 'ENSCAFG00000029155', 'ARPC3', 'VPS28', 'LRRFIP1', 'SRP14', 'ABRACL', 'ENSCAFG00000043577', 'ENSCAFG00000042598')
+tumor.sig <- read.csv("./metaData/tumorSig.csv", header = T)$x
+
+createPB(seu.obj = seu.obj, groupBy = "majorID_sub", comp = "cellSource", biologicalRep = "name",
+         outDir = paste0("../output/", outName, "/pseudoBulk/"), min.cell = 10,
+         grepTerm = "tils", grepLabel = c("TILs", "Blood"), featsTOexclude = c(pal_feats,tumor.sig), lowFilter = T, dwnSam = F)
+
+pseudoDEG(inDir = paste0("../output/", outName, "/pseudoBulk/"), metaPWD = paste0("../output/", outName, "/pseudoBulk/majorID_sub_deg_metaData.csv"),
+                    outDir = paste0("../output/", outName, "/pseudoBulk/"), outName = outName,
+                    padj_cutoff = 0.01, lfcCut = 0.58,  idents.1_NAME = "TILs", idents.2_NAME = "Blood", title = "TILS vs Blood", 
+                    fromFile = T, returnVolc = F, filterTerm = "^ENSCAF", mkDir = T)
+
+
+### Supp fig xx -- heatmap of sig DEGs
+files <- paste0("../output/", outName, "/pseudoBulk/", levels(seu.obj$majorID_sub), "/", outName, "_cluster_", levels(seu.obj$majorID_sub), "_all_genes.csv")
+
+df.list <- lapply(files, read.csv, header = T)
+res.df <- do.call(rbind, df.list)
+
+# write.csv(res.df, file = paste0("../output/supplementalData/", timepoint, "_degs.csv"))
+
+cnts_mat <- res.df  %>% 
+    mutate(
+        direction = ifelse(log2FoldChange > 0, "Up", "Down")
+    ) %>% 
+    group_by(gs_base, direction) %>% 
+    summarize(nRow = n()) %>% 
+    pivot_wider(names_from = gs_base, values_from = nRow) %>% 
+    as.matrix() %>% t()
+
+colnames(cnts_mat) <- cnts_mat[1,]
+cnts_mat <- cnts_mat[-c(1),]
+class(cnts_mat) <- "numeric"
+
+#order by number of total # of DEGs
+cnts_mat[is.na(cnts_mat)] <- 0
+orderList <- rev(rownames(cnts_mat)[order(rowSums(cnts_mat))])
+cnts_mat <- cnts_mat[match(orderList, rownames(cnts_mat)),]        
+
+anno_mat <- cnts_mat
+cnts_mat[,1] <- -cnts_mat[,1]
+
+png(file = paste0("../output/", outName, "/", outName, "_deg_heatmap.png"), width=1500, height=2000, res=400)
+par(mfcol=c(1,1))         
+ht <- Heatmap(cnts_mat,#name = "mat", #col = col_fun,
+              name = "# of DEGs",
+              cluster_rows = F,
+              row_title = "Cell type",
+              col = circlize::colorRamp2(c(min(cnts_mat), 0,max(cnts_mat)), colors = c("blue", "white", "red")),
+              cluster_columns = F,
+              show_column_names = TRUE,
+              column_title_side = "top",
+              column_names_rot = 0,
+              column_names_gp = gpar(fontsize = 14, col = "black"),
+              column_names_centered = TRUE,
+              heatmap_legend_param = list(legend_direction = "horizontal", title_position = "topleft",  title_gp = gpar(fontsize = 16), 
+                                          labels_gp = gpar(fontsize = 8), legend_width = unit(6, "cm")),
+              cell_fun = function(j, i, x, y, width, height, fill) {
+                  if(anno_mat[i, j] > 300) {
+                      grid.text(sprintf("%.0f", as.matrix(anno_mat)[i, j]), x, y, gp = gpar(fontsize = 14, col = "white"))
+                  } else if(anno_mat[i, j] < 300) {
+                      grid.text(sprintf("%.0f", as.matrix(anno_mat)[i, j]), x, y, gp = gpar(fontsize = 14, col = "black"))
+                  }
+              })
+draw(ht, padding = unit(c(2, 12, 2, 5), "mm"),show_heatmap_legend = FALSE)
+dev.off()
+
+clus_colz <- colz.df$colour[c(2,5,4,3)]
+names(clus_colz) <- levels(seu.obj$majorID_sub)
+cond_colz <- gg_color_hue(2)
+names(cond_colz) <- c("Blood","TILs")
+
+genez <- res.df %>% 
+    filter(!grepl("^ENS", gene)) %>%
+    mutate(
+        grp = paste0(gs_base, ifelse(log2FoldChange > 0, "_UP", "_DNN"))
+    ) %>%
+    group_by(grp) %>%
+    top_n(-15, padj) %>%
+    pull(gene)
+res.df <- res.df[res.df$gene %in% c(genez, features), ]
+
+res.df$gs_base <- toupper(res.df$gs_base)
+ht <- sigDEG_heatmap(
+    seu.obj = seu.obj, groupBy = "majorID_sub", splitBy = "cellSource", forceCleanPlot = T, 
+    dge_res = res.df, lfc_thres = 1, cond_colz = cond_colz, clus_colz = clus_colz,
+    saveName = paste0("../output/", outName, "/", "splitHeat.png"),
+    ht_height = 4750, ht_width = 3000
+)
+
 
 ### Generate supplemental figure for mono vs macrophage
 #load in annotated tumor data

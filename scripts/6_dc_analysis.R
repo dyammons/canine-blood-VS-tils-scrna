@@ -77,8 +77,8 @@ seu.obj$majorID_sub <- factor(seu.obj$majorID_sub, levels = c("cDC2 (c0)","cDC1 
 
 
 ### Supp data - Generate violin plots for each cluster
-vilnPlots(seu.obj = seu.obj, groupBy = "clusterID_sub", numOfFeats = 24, outName = outName,
-                     outDir = paste0("../output/viln/", outName, "/"), outputGeneList = T, filterOutFeats = c("^MT-", "^RPL", "^ENSCAF", "^RPS")
+vilnPlots(seu.obj = seu.obj, groupBy = "majorID_sub", numOfFeats = 24, outName = outName, returnViln = F,
+                     outDir = paste0("../output/viln/", outName, "/"), outputGeneList = T, filterOutFeats = c("^MT-", "^RPL", "^RPS")
                     )
 
 ### Fig 5a - UMAP by clusterID_sub
@@ -98,7 +98,8 @@ ggsave(paste("../output/", outName, "/", "rawUMAP.png", sep = ""), width = 7, he
 
 
 ### Fig 5b - skew plot for abundance analysis
-p <- skewPlot(seu.obj, groupBy = "majorID_sub", outDir = paste0("../output/", outName), outName = outName)
+p <- skewPlot(seu.obj, groupBy = "majorID_sub", yAxisLabel = "Percent of DCs",
+              dout = paste0("../output/", outName), outName = outName)
 ggsave(paste0("../output/", outName, "/", "skewPlot.png"), width = 6, height = 4)
 
 
@@ -160,6 +161,24 @@ p <- FeaturePlot(seu.obj.sub,features = features, pt.size = 0.1, split.by = "cel
                                                                                                                            plot.margin = unit(c(0, 0, 0, 0), "cm")
                                                                                                                           ) 
 ggsave(paste("../output/", outName, "/", "splitFeats.png", sep = ""), width = 12, height = 4)
+
+
+
+res.df <- read.csv(paste0("../output/", outName, "/pseudoBulk/allCells/", outName, "_cluster_allCells_all_genes.csv"))
+res.df <- res.df[!grepl("^ENS", res.df$gene), ]
+geneList_UP <- res.df %>% filter(padj < 0.1) %>% filter(log2FoldChange > 1) %>% pull(gene)
+geneList_DWN <- res.df %>% filter(padj < 0.1) %>% filter(log2FoldChange < -1) %>% pull(gene)
+
+seu.obj$cellSource <- as.factor(seu.obj$cellSource)
+p <- splitDot(
+    seu.obj = seu.obj, groupBy = "majorID_sub", splitBy = "cellSource", buffer = 150,
+    namedColz = setNames(c("#F8766D", "#00BFC4"),  c("Blood", "TILs")), 
+    geneList_UP = geneList_UP[1:20], geneList_DWN = geneList_DWN[1:20], geneColz = c("red", "blue")
+)
+ggsave(plot = p, paste0("../output/", outName, "/", outName, "_splitDot.png"), width = 11, height = 7)
+
+
+### too few cells to do de within each cluster
 
 
 #################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

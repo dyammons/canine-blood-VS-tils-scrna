@@ -16,15 +16,24 @@ seu.obj$conSense <- ifelse(seu.obj$cellSource == "TILs", seu.obj$celltype.l3,seu
 outName <- "allCells"
 
 Idents(seu.obj) <- "orig.ident"
-seu.obj <- RenameIdents(seu.obj, c("run_count_osa_pbmc_1" = "bl_1", "run_count_osa_pbmc_2" = "bl_2", 
-                                   "run_count_osa_pbmc_3" = "bl_3", "run_count_osa_pbmc_4" = "bl_4",
-                                   "run_count_osa_pbmc_5" = "bl_5","run_count_pbmc_tp1_pt1" = "bl_6",
-                                   "run_count_pbmc_tp1_pt2" = "bl_7", "run_count_pbmc_tp1_pt3" = "bl_8", 
-                                   "run_count_pbmc_tp1_pt4" = "bl_9", "run_count_pbmc_tp1_pt5" = "bl_10",
-                                   "run_count_tumor_no_tx_1_1" = "tils_1","run_count_tumor_no_tx_1_2" = "tils_1",
-                                   "run_count_tumor_no_tx_2_1" = "tils_2", "run_count_tumor_no_tx_2_2" = "tils_2", 
-                                   "run_count_tumor_no_tx_4" = "tils_3", "run_count_tumor_no_tx_5" = "tils_4",
-                                   "run_count_no_tx_tumor_6" = "tils_5","run_count_tumor_no_tx_7" = "tils_6")
+seu.obj <- RenameIdents(seu.obj, c("run_count_osa_pbmc_1" = "bl_1", 
+                                   "run_count_osa_pbmc_2" = "bl_2", 
+                                   "run_count_osa_pbmc_3" = "bl_3", 
+                                   "run_count_osa_pbmc_4" = "bl_4",
+                                   "run_count_osa_pbmc_5" = "bl_5",
+                                   "run_count_pbmc_tp1_pt1" = "bl_6",
+                                   "run_count_pbmc_tp1_pt2" = "bl_7", 
+                                   "run_count_pbmc_tp1_pt3" = "bl_8", 
+                                   "run_count_pbmc_tp1_pt4" = "bl_9", 
+                                   "run_count_pbmc_tp1_pt5" = "bl_10",
+                                   "run_count_tumor_no_tx_1_1" = "tils_1",
+                                   "run_count_tumor_no_tx_1_2" = "tils_1",
+                                   "run_count_tumor_no_tx_2_1" = "tils_2", 
+                                   "run_count_tumor_no_tx_2_2" = "tils_2", 
+                                   "run_count_tumor_no_tx_4" = "tils_3", 
+                                   "run_count_tumor_no_tx_5" = "tils_4",
+                                   "run_count_no_tx_tumor_6" = "tils_5",
+                                   "run_count_tumor_no_tx_7" = "tils_6")
                        )
 seu.obj$name <- Idents(seu.obj)
 
@@ -159,15 +168,17 @@ seu.obj$major <- droplevels(as.factor(seu.obj$major))
 
 
 ### Fig 1d - key feature plots
-features <- c("CD3G","CD8A","CD4",  "S100A12","DLA-DRA",
-              "FLT3", "ANPEP", "MS4A1","JCHAIN","TOP2A")
-p <- prettyFeats(seu.obj = seu.obj, nrow = 2, ncol = 5, features = features, color = "black", order = F) 
-ggsave(paste("../output/", outName, "/featPlots.png", sep = ""), width = 15, height = 6)
+features <- c("CD3G", "CD8A", "GZMA", "CD4", 
+              "S100A12", "DLA-DRA","ANPEP", "CD68", 
+              "FLT3", "MS4A1", "JCHAIN", "TOP2A")
+p <- prettyFeats(seu.obj = seu.obj, nrow = 3, ncol = 4, features = features, color = "black", order = F) 
+ggsave(paste("../output/", outName, "/featPlots.png", sep = ""), width = 12, height = 9)
 
 
-### Fig 1e - barchart comparing cell type proptions
-p <- skewPlot(seu.obj, groupBy = "majorID_sub")
-ggsave(paste("../output/", outName, "/barchart.png", sep = ""), width = 6, height = 4)
+### Fig 1e - boxplots comparing cell type proptions
+p <- skewPlot(seu.obj, groupBy = "major", sigTextSpacing = 0.035, yAxisLabel = "Percent of all cells",
+              dout = paste0("../output/", outName), outName = outName)
+ggsave(paste0("../output/", outName, "/barchart.png"), width = 8, height = 3)
 
 #store gene list associated with platelets (as presented in https://doi.org/10.5281/zenodo.7884518)
 pal_feats = c('TIMP1', 'NAA10', 'ENSCAFG00000037735', 'GP6', 'SEC11C', 'FTL', 'NRGN', 'ACOT7', 'VCL', 'RSU1', 'ITGB1', 'H3-3A', 'RABGAP1L', 'SELP', 'SH3GLB1', 'ACTB', 'ENSCAFG00000008221', 'TLN1', 'GSN', 'AMD1', 'TREM2', 'SH3BGRL2', 'MYH9', 'PLEK', 'ENSCAFG00000042554', 'RAP1B', 'ENSCAFG00000004260', 'NAP1L1', 'PPBP', 'RASA3', 'ITGA2B', 'EIF1', 'ACTG1', 'C9H17orf64', 'JMJD6', 'CCL14', 'GNG11', 'IGF2BP3', 'TBXAS1', 'VDAC3', 'MARCHF2', 'TPM4', 'TKT', 'FTH1.1', 'FERMT3', 'RTN3', 'PRKAR2B', 'SVIP', 'ENSCAFG00000030286', 'ADA', 'MYL9', 'TUBB1', 'TUBA1B', 'METTL7A', 'THBS1', 'SERF2', 'PIF1', 'B2M', 'GAS2L1', 'YWHAH', 'HPSE', 'ATG3', 'ENSCAFG00000015217', 'ITGA6','RGS18', 'SUB1', 'LGALS1', 'CFL1', 'BIN2', 'CAT', 'RGS10', 'MGST3', 'TMBIM6', 'PFN1', 'CD63', 'RALBP1', 'GNAS', 'SEPTIN7', 'TPT1', 'UBB', 'ATF4', 'BBLN', 'MTDH', 'ENSCAFG00000017655','FYB1', 'ENO1', 'GABARAP', 'SSR4', 'MSN', 'ENSCAFG00000011134', 'ENSCAFG00000046637', 'COX8A', 'DLA-64', 'CD47', 'VASP', 'DYNLRB1', 'DLA88', 'SMDT1', 'ATP5PF','ELOB', 'ENSCAFG00000029155', 'ARPC3', 'VPS28', 'LRRFIP1', 'SRP14', 'ABRACL', 'ENSCAFG00000043577', 'ENSCAFG00000042598')

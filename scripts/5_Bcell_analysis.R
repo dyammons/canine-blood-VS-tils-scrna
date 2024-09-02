@@ -85,8 +85,8 @@ seu.obj$clusID_new <- Idents(seu.obj)
 
 
 ### Supp data - Generate violin plots for each cluster
-vilnPlots(seu.obj = seu.obj, groupBy = "clusID_new", numOfFeats = 24, outName = outName,
-                     outDir = paste0("../output/viln/", outName, "/"), outputGeneList = T, filterOutFeats = c("^MT-", "^RPL", "^ENSCAF", "^RPS")
+vilnPlots(seu.obj = seu.obj, groupBy = "majorID_sub", numOfFeats = 24, outName = outName, returnViln = F,
+                     outDir = paste0("../output/viln/", outName, "/"), outputGeneList = T, filterOutFeats = c("^MT-", "^RPL", "^RPS")
                     )
 
 ### Fig 4a - UMAP by clusterID_sub
@@ -106,7 +106,8 @@ ggsave(paste("../output/", outName, "/", "rawUMAP.png", sep = ""), width = 7, he
 
 
 ### Fig 4b - skew plot for abundance analysis
-p <- skewPlot(seu.obj, groupBy = "majorID_sub", outDir = paste0("../output/", outName), outName = outName)
+p <- skewPlot(seu.obj, groupBy = "majorID_sub", yAxisLabel = "Percent of B cells",
+              dout = paste0("../output/", outName), outName = outName)
 ggsave(paste0("../output/", outName, "/", "skewPlot.png"), width = 6, height = 4)
 
 
@@ -160,7 +161,7 @@ ggsave(paste0("../output/", outName, "/", "gseaPlot_2.png"), width = 7, height =
 Idents(seu.obj) <- "cellSource"
 seu.obj.sub <- subset(x = seu.obj, downsample = min(table(seu.obj$cellSource)))
 
-features <- c("LYZ", "BTLA", "ADD3", "IGHM", "FOS", "FOSB", "IGFLR1", "EGFL7","RRBP1")
+features <- c("LYZ", "BTLA", "ADD3", "IGHM", "FOS", "FOSB", "FAS", "IGFLR1", "EGFL7")
 
 p <- FeaturePlot(seu.obj.sub,features = features, pt.size = 0.1, split.by = "cellSource", order = T, cols = c("lightgrey","darkblue"), by.col = F) + labs(x = "UMAP1", y = "UMAP2") & theme(axis.text = element_blank(),
                                                                                                                                                 axis.title.y.right = element_text(size = 11),
@@ -175,6 +176,21 @@ p <- FeaturePlot(seu.obj.sub,features = features, pt.size = 0.1, split.by = "cel
 ggsave(paste("../output/", outName, "/", "splitFeats.png", sep = ""), width = 12, height = 4)
 
 
+res.df <- read.csv(paste0("../output/", outName, "/pseudoBulk/allCells/", outName, "_cluster_allCells_all_genes.csv"))
+res.df <- res.df[!grepl("^ENS", res.df$gene), ]
+geneList_UP <- res.df %>% filter(padj < 0.1) %>% filter(log2FoldChange > 1) %>% pull(gene)
+geneList_DWN <- res.df %>% filter(padj < 0.1) %>% filter(log2FoldChange < -1) %>% pull(gene)
+
+seu.obj$cellSource <- as.factor(seu.obj$cellSource)
+p <- splitDot(
+    seu.obj = seu.obj, groupBy = "majorID_sub", splitBy = "cellSource", buffer = 150,
+    namedColz = setNames(c("#F8766D", "#00BFC4"),  c("Blood", "TILs")), 
+    geneList_UP = geneList_UP[1:20], geneList_DWN = geneList_DWN[1:20], geneColz = c("red", "blue")
+)
+ggsave(plot = p, paste0("../output/", outName, "/", outName, "_splitDot.png"), width = 11, height = 7)
+
+
+## too few to do within cluster de
 ######################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #######   end B cell analysis   ######## <<<<<<<<<<<<<<
 ######################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
