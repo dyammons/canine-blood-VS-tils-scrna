@@ -1,95 +1,148 @@
 #!/usr/bin/Rscript
 
-#load custom functions & packages
+### Author: Dylan Ammons
+### Analysis code for [title here]
+
+### Purpose: 
+# Load in the clean, integrated object that contains canine pbmcs and tils to
+# then subset on CD4 T cells and complete subcluster analysis. With the
+# clustered data, complete differential gene expression and abundance analysis
+
+### Analysis approach (2 steps):
+
+## (1) Subcluster analysis - Load in cleaned object generated from 
+# `2_allCells_analysis.R`, subset on CD4 T cells, then re-integrate data and
+# repeat unsupervised clustering.
+
+## (2) Plot figures (Figure 1) - Complete visualization and run 
+# differential abundance analysis
+
+############################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#######   begin CD4 T cell analysis   ######## <<<<<<<<<<<<<<<
+############################################## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+### (1) Subcluster analysis
+
+## Load custom functions, packages, and set output path
 source("/pl/active/dow_lab/dylan/repos/scrna-seq/analysis-code/customFunctions.R")
-
-### Analysis note: 
-
-################################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#######   begin CD4 T cell preprocessing   ######## <<<<<<<<<<<<<<
-################################################### <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-#set output params
 outName <- "cd4"
 
-#subset on the CD4 T cells & complete subset analysis
-table(seu.obj$conSense)[grepl("CD4",names(table(seu.obj$conSense)))]
+## Load in data and subset on cell types of interest
+seu.obj <- readRDS("../output/s3/bloodANDtils_filtered_allCells_S3.rds")
 Idents(seu.obj) <- "conSense"
-seu.obj.sub <- subset(seu.obj, 
-                          ident = c("CD4+ Naive", "CD4+ T reg", "CD4+ TCM", "CD4+ TEM", 
-                                    "CD4+ TEM, Th1-like","CD4+ TEM, Th17-like", "CD4+ TEM, Th2-like",
-                                   "CD4_act","CD4_ex","CD4_naive","CD4_reg")
-                         )
-
-table(seu.obj.sub$conSense)
+seu.obj.sub <- subset(
+    seu.obj, 
+    ident = c(
+        "CD4+ Naive", "CD4+ T reg", "CD4+ TCM", "CD4+ TEM", 
+        "CD4+ TEM, Th1-like","CD4+ TEM, Th17-like", "CD4+ TEM, Th2-like",
+        "CD4_act","CD4_ex","CD4_naive","CD4_reg"
+    )
+)
+#Check that all samples have at least 100 cells
 min(table(seu.obj.sub$orig.ident)) > 100
+#Split data by sample then reintegrate and cluster
 seu.sub.list <- SplitObject(seu.obj.sub, split.by = "orig.ident")
+seu.obj <- indReClus(
+    seu.obj = NULL, outDir = "../output/s2/", 
+    subName = "20230507_cd4_bloodANDtils", preSub = T, seu.list = seu.sub.list,
+    vars.to.regress = "percent.mt", nfeatures = 2000
+)
+clusTree(
+    seu.obj = seu.obj, dout = "../output/clustree/", 
+    outName = "20230507_cd4_bloodANDtils", 
+    test_dims = 40, algorithm = 3, prefix = "integrated_snn_res."
+)
+seu.obj <- dataVisUMAP(
+    seu.obj = seu.obj, 
+    outDir = "../output/s3/", outName = "20240305_cd4_bloodANDtils", 
+    final.dims = 40, min.dist = 0.6, n.neighbors = 75,
+    final.res = 0.7, algorithm = 3,
+    prefix = "integrated_snn_res.",  stashID = "clusterID_sub", 
+    assay = "integrated", saveRDS = T,
+    features = c(
+        "PTPRC", "CD3E", "CD8A", "GZMA", 
+        "IL7R", "ANPEP", "FLT3", "DLA-DRA", 
+        "CD4", "MS4A1", "PPBP","HBM"
+    )
+)
 
-seu.obj <- indReClus(seu.obj = NULL, outDir = "../output/s2/", subName = "20230507_cd4_bloodANDtils", preSub = T, seu.list = seu.sub.list,
-                      vars.to.regress = "percent.mt", nfeatures = 2000
-                       )
 
-clusTree(seu.obj = seu.obj, dout = "../output/clustree/", outName = "20230507_cd4_bloodANDtils", test_dims = 40, algorithm = 3, prefix = "integrated_snn_res.")
-seu.obj <- dataVisUMAP(seu.obj = seu.obj, outDir = "../output/s3/", outName = "20240305_cd4_bloodANDtils", final.dims = 40, final.res = 0.7, stashID = "clusterID_sub", 
-                        algorithm = 3, prefix = "integrated_snn_res.", min.dist = 0.6, n.neighbors = 75, assay = "integrated", saveRDS = T,
-                        features = c("PTPRC", "CD3E", "CD8A", "GZMA", 
-                                     "IL7R", "ANPEP", "FLT3", "DLA-DRA", 
-                                     "CD4", "MS4A1", "PPBP","HBM")
-                      )
+### (2) Data visualization
 
-
-############################################# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#######   begin CD4 T cell analysis   ######## <<<<<<<<<<<<<<
-############################################# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-#load in processed data
+#Load in processed data (in case not already loaded)
 seu.obj <- readRDS("../output/s3/20230507_cd4_bloodANDtils_res0.7_dims40_dist0.6_neigh75_S3.rds")
-seu.obj$cellSource <- ifelse(grepl("tils",seu.obj$name),"TILs","Blood")
 outName <- "cd4"
 
-#fix nomencalture error and add metadata
+#Correct metadata errors
+seu.obj$cellSource <- ifelse(grepl("tils",seu.obj$name),"TILs","Blood")
 seu.obj$celltype.l3 <- as.factor(seu.obj$celltype.l3)
 levels(seu.obj$celltype.l3)[2] <- "CD4_fh"
 
-#check consenseous
+#Manually join clusters based on clustree output to better fit annotations
 Idents(seu.obj) <- "clusterID_sub"
-seu.obj <- RenameIdents(seu.obj, c("0" = "1", "1" = "2", 
-                                   "2" = "0", "3" = "0",
-                                   "4" = "3", "5" = "4",
-                                   "6" = "5", "7" = "1"))
+seu.obj <- RenameIdents(
+    seu.obj, 
+    c(
+        "0" = "1", "1" = "2", 
+        "2" = "0", "3" = "0",
+        "4" = "3", "5" = "4",
+        "6" = "5", "7" = "1"
+    )
+)
 seu.obj$clusID_new <- Idents(seu.obj)
 
-seu.obj$ct <- ifelse(seu.obj$cellSource == "TILs", paste0("TIL;", seu.obj$celltype.l3), paste0("Blood;",seu.obj$celltype.l3_pbmc))
+## Assign concensous cell type identities
+seu.obj$ct <- ifelse(
+    seu.obj$cellSource == "TILs", 
+    paste0("TIL;", seu.obj$celltype.l3), 
+    paste0("Blood;",seu.obj$celltype.l3_pbmc)
+)
 table(seu.obj$ct, seu.obj$clusID_new) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% filter(source == "Blood") %>% group_by(Var.2) %>% mutate(pct = value/sum(value))%>% filter(value == max(value))
 table(seu.obj$ct, seu.obj$clusID_new) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% filter(source == "TIL") %>% group_by(Var.2) %>% mutate(pct = value/sum(value)) %>% filter(value == max(value))
-
 Idents(seu.obj) <- "cellSource"
 seu.obj.ds <- subset(seu.obj, downsample = min(table(seu.obj$cellSource)))
 table(seu.obj.ds$ct, seu.obj.ds$clusID_new) %>% sweep(., 2, colSums(.), `/`) %>% melt() %>% separate(Var.1, sep = ";", c("source", "ct")) %>% group_by(source, Var.2) %>% filter(value == max(value))
-
-#set metadata
+#Update the metadata with cell type annotations
 Idents(seu.obj) <- "clusterID_sub"
-seu.obj <- RenameIdents(seu.obj, c("0" = "TCM (c1)", "1" = "Treg/Tfh (c2)", 
-                                   "2" = "Naive (c0)", "3" = "Naive (c0)",
-                                   "4" = "TEM_Th2-like (c3)", "5" = "TEM (c4)",
-                                   "6" = "TEM_Th1-like (c5)", "7" = "TCM (c1)"))
+seu.obj <- RenameIdents(
+    seu.obj, 
+    c(
+        "0" = "TCM (c1)", "1" = "Treg/Tfh (c2)", 
+        "2" = "Naive (c0)", "3" = "Naive (c0)",
+        "4" = "TEM_Th2-like (c3)", "5" = "TEM (c4)",
+        "6" = "TEM_Th1-like (c5)", "7" = "TCM (c1)"
+    )
+)
 seu.obj$majorID_sub <- Idents(seu.obj)
-seu.obj$majorID_sub <- factor(seu.obj$majorID_sub, levels = c("TCM (c1)", "Treg/Tfh (c2)", 
-                                                              "Naive (c0)", "TEM_Th2-like (c3)", 
-                                                              "TEM (c4)", "TEM_Th1-like (c5)")[c(3,1,5,6,4,2)])
-
+seu.obj$majorID_sub <- factor(
+    seu.obj$majorID_sub, 
+    levels = c(
+        "TCM (c1)", "Treg/Tfh (c2)", 
+        "Naive (c0)", "TEM_Th2-like (c3)", 
+        "TEM (c4)", "TEM_Th1-like (c5)"
+    )[c(3,1,5,6,4,2)]
+)
 Idents(seu.obj) <- "clusID_new"
-seu.obj <- RenameIdents(seu.obj, c("0" = "#009DA5", "1" = "#148B7D", 
-                                   "2" = "#0E3F5C", "3" = "#D4F3A3",
-                                   "4" = "#9CD6BA", "5" = "#2E4F79"))
+seu.obj <- RenameIdents(
+    seu.obj, 
+    c(
+        "0" = "#009DA5", "1" = "#148B7D", 
+        "2" = "#0E3F5C", "3" = "#D4F3A3",
+        "4" = "#9CD6BA", "5" = "#2E4F79"
+    )
+)
 seu.obj$sub_colz <- Idents(seu.obj)
 
-### Supp data - Generate violin plots for each cluster
-vilnPlots(seu.obj = seu.obj, groupBy = "majorID_sub", numOfFeats = 24, outName = outName, returnViln = F,
-                     outDir = paste0("../output/viln/", outName, "/"), outputGeneList = T, filterOutFeats = c("^MT-", "^RPL", "^RPS")
-                    )
+## Supplemental data - Generate gene lists for each cluster
+vilnPlots(
+    seu.obj = seu.obj, groupBy = "majorID_sub", numOfFeats = 24, 
+    outName = outName, outDir = paste0("../output/viln/", outName, "/"), 
+    outputGeneList = T, filterOutFeats = c("^MT-", "^RPL", "^RPS"), 
+    returnViln = F
+)
 
-### Fig 2a - UMAP by clusID_new
+## Fig 2a - UMAP by clusID_new
 pi <- DimPlot(seu.obj, 
               reduction = "umap", 
               group.by = "clusID_new",
