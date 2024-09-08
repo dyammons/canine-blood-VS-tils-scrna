@@ -293,6 +293,40 @@ p <- skewPlot(seu.obj, groupBy = "majorID_sub", yAxisLabel = "Percent of CD4 T c
 ggsave(paste0("../output/", outName, "/", "skewPlot.png"), width = 6, height = 4)
 
 
+seu.obj$majorID_sub <- as.factor(seu.obj$majorID_sub) # groupBy must be a factor
+groupBy <- "majorID_sub"
+refVal <- "name"
+cellCnts <- table(seu.obj$majorID_sub, seu.obj$name)
+sampleData <- as.data.frame(list(
+    name = c(
+        "bl_1", "bl_2", "bl_3", "bl_4", "bl_5", "bl_6", "bl_7", "bl_8", 
+        "bl_9", "bl_10", "tils_5", "tils_1", "tils_2", "tils_3", "tils_4", 
+        "tils_6"
+    ),
+    cellSource = c(rep("blood", 10), rep("tils", 6))
+))
+
+cellCnts <- cellCnts[rowSums(cellCnts == 0) == 0, ] # Only use clusters present in all horses
+#set up edgeR
+dge <- DGEList(counts = cellCnts, samples = sampleData)
+cellSource <- factor(sampleData$cellSource, levels = c("blood","tils"))
+design <- model.matrix(~1 + cellSource)
+#run stats and extract res
+dge <- estimateDisp(dge, design, trend = "none")
+fit <- glmQLFit(dge, design, robust = TRUE, abundance.trend = FALSE)
+res <- glmQLFTest(fit, coef = ncol(design))
+summary(decideTests(res))
+
+
+
+
+
+
+
+
+
+
+
 ### Fig 2c - DGE analysis
 
 #load in the tumor and pal signatures to exlude from DE analysis
@@ -361,11 +395,18 @@ geneList_DWN <- res.df %>% filter(padj < 0.1) %>% filter(log2FoldChange < -1) %>
 
 seu.obj$cellSource <- as.factor(seu.obj$cellSource)
 p <- splitDot(
-    seu.obj = seu.obj, groupBy = "majorID_sub", splitBy = "cellSource", buffer = 125,
+    seu.obj = seu.obj, groupBy = "majorID_sub", splitBy = "cellSource",
     namedColz = setNames(c("#F8766D", "#00BFC4"),  c("Blood", "TILs")), 
-    geneList_UP = geneList_UP[1:20], geneList_DWN = geneList_DWN[1:20], geneColz = c("red", "blue")
+    geneList_UP = c(geneList_UP[1:20], "HAVCR1", "CXCL13", "LAG3"), geneList_DWN = c(geneList_DWN[1:20], "SELL", "LEF1", "TMEM154"), geneColz = c("red", "blue")
 )
-ggsave(plot = p, paste0("../output/", outName, "/", outName, "_splitDot.png"), width = 10.5, height = 7)
+p <- p +
+    theme(
+        legend.box = "horizontal",
+        legend.direction = "horizontal",
+        legend.position = "bottom",
+        legend.justification = 'center'
+    )
+ggsave(plot = p, paste0("../output/", outName, "/", outName, "_splitDot.png"), width = 13, height = 6)
 
 
 Idents(seu.obj) <- "majorID_sub"
@@ -433,9 +474,9 @@ ht <- Heatmap(cnts_mat,#name = "mat", #col = col_fun,
               heatmap_legend_param = list(legend_direction = "horizontal", title_position = "topleft",  title_gp = gpar(fontsize = 16), 
                                           labels_gp = gpar(fontsize = 8), legend_width = unit(6, "cm")),
               cell_fun = function(j, i, x, y, width, height, fill) {
-                  if(anno_mat[i, j] > 300) {
+                  if(cnts_mat[i, j] < -50) {
                       grid.text(sprintf("%.0f", as.matrix(anno_mat)[i, j]), x, y, gp = gpar(fontsize = 14, col = "white"))
-                  } else if(anno_mat[i, j] < 300) {
+                  } else if(cnts_mat[i, j] > -50) {
                       grid.text(sprintf("%.0f", as.matrix(anno_mat)[i, j]), x, y, gp = gpar(fontsize = 14, col = "black"))
                   }
               })
@@ -461,6 +502,7 @@ res.df$gs_base <- toupper(res.df$gs_base)
 ht <- sigDEG_heatmap(
     seu.obj = seu.obj, groupBy = "majorID_sub", splitBy = "cellSource", forceCleanPlot = T, 
     dge_res = res.df, lfc_thres = 1, cond_colz = cond_colz, clus_colz = clus_colz,
+    font_colz = c("white", rep("black", 4), "white"),
     saveName = paste0("../output/", outName, "/", "splitHeat.png"),
     ht_height = 4750, ht_width = 3000
 )
