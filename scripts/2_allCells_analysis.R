@@ -99,9 +99,16 @@ seu.obj$major <- factor(seu.obj$major, levels = levels(seu.obj$major)[c(5,3,1,2,
 seu.obj$majorID_sub <- seu.obj$major
 seu.obj$major <- droplevels(as.factor(seu.obj$major))
 
+#Export canine feature for use in human-canine comparision
+
+genez <- orthogene::convert_orthologs(
+    gene_df = rownames(seu.obj), gene_output = "columns", 
+    input_species = "dog", output_species = "human", 
+    non121_strategy = "drop_both_species"
+)
+write.csv(genez, file = "./metaData/canine_human_convert.csv")
 
 ### (2) Plot primary figures (Figure 1)
-
 ## Fig extra - UMAP of unsupervised clustering results using integrated dataset
 pi <- DimPlot(
         seu.obj, 
@@ -149,10 +156,10 @@ ggsave(paste("../output/", outName, "/featPlots.png", sep = ""), width = 12, hei
 
 ## Fig 1e - boxplots comparing cell type proportions
 p <- skewPlot(
-        seu.obj, groupBy = "major", sigTextSpacing = 0.035, 
-        yAxisLabel = "Percent of all cells",
-        dout = paste0("../output/", outName), outName = outName
-)
+    seu.obj, groupBy = "major", sigTextSpacing = 0.035, 
+    yAxisLabel = "Percent of all cells",
+    dout = paste0("../output/", outName), outName = outName, 
+    sampleRep = "name", grepTerm = "tils", grepRes = c("Tumor","Blood"))
 ggsave(paste0("../output/", outName, "/barchart.png"), width = 8, height = 3)
 
 
