@@ -2,8 +2,8 @@
 
 This GitHub repository contains all the analysis code used in, "Characterization of canine tumor-infiltrating leukocyte transcriptomic signatures reveals conserved expression patterns with human osteosarcoma."
 
-If you use our raw/processed data, extract data using the UCSC Cell Browser portal, or use portions of our code in your analysis, please cite:
-> accepted, publication pending
+If you use our processed data, extract data using the UCSC Cell Browser portal, or use portions of our code in your analysis, please consider citing:
+> Ammons, D.T., Harris, R.A., Chow, L. et al. Characterization of canine tumor-infiltrating leukocyte transcriptomic signatures reveals conserved expression patterns with human osteosarcoma. Cancer Immunol Immunother 74, 105 (2025). https://doi.org/10.1007/s00262-025-03950-3
 
 If you have any questions or concerns, please submit an issue, contact the corresponding author(s), and/or contact Dylan Ammons at dylan.ammons @ colostate dot edu.
 
